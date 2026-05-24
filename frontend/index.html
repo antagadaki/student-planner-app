@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenSource Student Planner</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2d3748; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; background: #edf2f7; padding: 15px; border-radius: 6px; }
+        input, select, button { padding: 10px; font-size: 16px; border: 1px solid #cbd5e0; border-radius: 4px; }
+        button { grid-column: span 2; background-color: #3182ce; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #2b6cb0; }
+        .task-list { list-style: none; padding: 0; }
+        .task-item { background: #fff; padding: 15px; border-left: 5px solid #3182ce; margin-bottom: 10px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .task-item.High { border-left-color: #e53e3e; }
+        .task-item.Medium { border-left-color: #dd6b20; }
+        .task-item.Low { border-left-color: #38a169; }
+        .task-info h3 { margin: 0 0 5px 0; font-size: 18px; }
+        .task-info p { margin: 0; color: #718096; font-size: 14px; }
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; color: white; }
+        .badge.High { background: #e53e3e; }
+        .badge.Medium { background: #dd6b20; }
+        .badge.Low { background: #38a169; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎓 Student Planner Dashboard</h1>
+    
+    <form id="taskForm">
+        <input type="text" id="title" placeholder="Assignment Title" required>
+        <input type="text" id="course" placeholder="Course Name" required>
+        <input type="date" id="deadline" required>
+        <select id="priority">
+            <option value="Low">Low Priority</option>
+            <option value="Medium" selected>Medium Priority</option>
+            <option value="High">High Priority</option>
+        </select>
+        <button type="submit">Add Task to Planner</button>
+    </form>
+
+    <h2>Current Deadlines</h2>
+    <ul id="taskList" class="task-list"></ul>
+</div>
+
+<script>
+   
+    const API_URL = '../backend/api.php';
+
+    async function fetchTasks() {
+        try {
+            const res = await fetch(API_URL);
+            const tasks = await res.json();
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+
+            if(tasks.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#a0aec0;">No tasks found.</p>';
+                return;
+            }
+
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = `task-item ${task.priority}`;
+                li.innerHTML = `
+                    <div class="task-info">
+                        <h3>${task.title}</h3>
+                        <p>📚 ${task.course} | 📅 Due: ${task.deadline}</p>
+                    </div>
+                    <span class="badge ${task.priority}">${task.priority}</span>
+                `;
+                list.appendChild(li);
+            });
+        } catch (err) {
+            console.error("Error loading tasks:", err);
+        }
+    }
+
+    document.getElementById('taskForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const taskData = {
+            title: document.getElementById('title').value,
+            course: document.getElementById('course').value,
+            deadline: document.getElementById('deadline').value,
+            priority: document.getElementById('priority').value
+        };
+
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(taskData)
+            });
+            const result = await res.json();
+            if (result.status === 'success') {
+                document.getElementById('taskForm').reset();
+                fetchTasks();
+            }
+        } catch (err) {
+            console.error("Error adding task:", err);
+        }
+    });
+
+    fetchTasks();
+</script>
+</body>
+</html>
